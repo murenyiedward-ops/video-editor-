@@ -10,10 +10,10 @@ interface VideoPreviewProps {
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, overlayText, sfxSuggestions = [] }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isDucking, setIsDucking] = useState(false);
   const [activeSfx, setActiveSfx] = useState<string | null>(null);
 
-  // Utility to convert "MM:SS" or "SS" strings to numbers
   const parseTimestamp = (ts: string): number => {
     const parts = ts.split(':').map(Number);
     if (parts.length === 2) return parts[0] * 60 + parts[1];
@@ -32,8 +32,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, overlayText, sfxS
 
       for (const sfx of sfxSuggestions) {
         const sfxTime = parseTimestamp(sfx.timestamp);
-        // Duck for 0.8 seconds starting from the timestamp
-        if (currentTime >= sfxTime && currentTime < sfxTime + 0.8) {
+        if (currentTime >= sfxTime && currentTime < sfxTime + 1.2) {
           shouldDuck = true;
           currentEffect = sfx.effect;
           break;
@@ -43,8 +42,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, overlayText, sfxS
       if (shouldDuck !== isDucking) {
         setIsDucking(shouldDuck);
         setActiveSfx(currentEffect);
-        // Smoothly adjust volume to simulate ducking
-        video.volume = shouldDuck ? 0.2 : 1.0;
+        video.volume = shouldDuck ? 0.15 : 1.0;
       }
     };
 
@@ -52,77 +50,89 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, overlayText, sfxS
     return () => video.removeEventListener('timeupdate', handleTimeUpdate);
   }, [sfxSuggestions, isDucking]);
 
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch(e => console.error("Play blocked:", e));
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
   return (
-    <div className="relative w-full aspect-[9/16] max-w-[400px] mx-auto bg-black rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl neon-border group">
+    <div className="relative w-full aspect-[9/16] max-w-[380px] mx-auto bg-slate-900 rounded-[2.5rem] overflow-hidden border-[8px] border-slate-800 shadow-2xl group transition-all duration-500 hover:border-slate-700">
       {videoUrl ? (
-        <>
+        <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
           <video
             ref={videoRef}
             src={videoUrl}
             className="w-full h-full object-cover"
             controls={false}
             loop
-            muted={false} // Ensure it's not muted so we can hear/see volume changes
-            autoPlay
+            muted={false}
+            playsInline
           />
           
-          {/* Audio Ducking Indicator */}
-          {isDucking && (
-            <div className="absolute top-6 right-6 flex items-center gap-2 bg-amber-500/90 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-lg animate-pulse z-50">
-              <span className="text-sm">🔊</span>
-              Ducking for {activeSfx}
+          {/* Overlay Effects */}
+          {!isPlaying && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm z-20">
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center border border-white/30 transition-transform group-hover:scale-110">
+                <span className="text-4xl">▶️</span>
+              </div>
             </div>
           )}
 
-          {overlayText && (
-            <div className="absolute inset-x-4 top-1/4 flex justify-center pointer-events-none">
-              <span className="bg-white text-black font-extrabold px-4 py-2 text-xl italic uppercase tracking-tighter transform -rotate-2 shadow-lg animate-bounce">
+          {isDucking && (
+            <div className="absolute top-8 right-6 flex items-center gap-3 bg-amber-500 text-black px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-tighter shadow-lg animate-bounce z-30">
+              <span>🔊</span>
+              DUCKING: {activeSfx}
+            </div>
+          )}
+
+          {overlayText && isPlaying && (
+            <div className="absolute inset-x-6 top-1/3 flex justify-center pointer-events-none z-10">
+              <span className="bg-white text-black font-black px-5 py-2.5 text-2xl italic uppercase tracking-tighter transform -rotate-2 shadow-2xl animate-in zoom-in-50 duration-300">
                 {overlayText}
               </span>
             </div>
           )}
           
-          <div className="absolute bottom-6 left-4 right-4 flex flex-col gap-2 pointer-events-none">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-500 border-2 border-white" />
+          {/* Mock TikTok Interface */}
+          <div className="absolute bottom-8 left-6 right-6 flex flex-col gap-3 pointer-events-none z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-400 border-2 border-white shadow-lg" />
               <div className="flex flex-col">
-                <span className="text-sm font-bold">@editor_pro</span>
-                <span className="text-xs text-slate-300">Viral Content Generator</span>
+                <span className="text-sm font-black text-white drop-shadow-md">@editor_pro_ai</span>
+                <span className="text-[10px] text-slate-200 font-bold uppercase tracking-widest">Master Studio</span>
               </div>
             </div>
-            <p className="text-sm text-slate-100 line-clamp-2">
-              Automated edit powered by Gemini AI. #viral #editing #tiktok
+            <p className="text-sm text-slate-50 font-medium drop-shadow-md leading-snug">
+              Fresh AI synchronization enabled. Automatically ducks background music for cinematic SFX impact. #ai #editor #viral
             </p>
           </div>
           
-          <div className="absolute right-4 bottom-20 flex flex-col gap-6 items-center pointer-events-none">
+          <div className="absolute right-6 bottom-32 flex flex-col gap-8 items-center pointer-events-none z-10">
              <div className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 bg-slate-800/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  ❤️
-                </div>
-                <span className="text-xs text-slate-400">12.5k</span>
+                <div className="w-14 h-14 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shadow-lg">❤️</div>
+                <span className="text-xs font-bold text-white shadow-black drop-shadow-lg">45.2K</span>
              </div>
              <div className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 bg-slate-800/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  💬
-                </div>
-                <span className="text-xs text-slate-400">432</span>
-             </div>
-             <div className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 bg-slate-800/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  🔖
-                </div>
-                <span className="text-xs text-slate-400">98</span>
+                <div className="w-14 h-14 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shadow-lg">💬</div>
+                <span className="text-xs font-bold text-white drop-shadow-lg">1,204</span>
              </div>
           </div>
-        </>
+        </div>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-slate-500 px-8 text-center">
-          <svg className="w-16 h-16 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          <p className="font-medium">No video uploaded</p>
-          <p className="text-xs opacity-70">Upload a raw clip to start the AI transformation</p>
+        <div className="w-full h-full flex flex-col items-center justify-center gap-6 text-slate-500 px-12 text-center bg-slate-950">
+          <div className="w-24 h-24 bg-slate-900 rounded-[2rem] flex items-center justify-center border border-slate-800 animate-pulse">
+            <span className="text-5xl">📼</span>
+          </div>
+          <div>
+            <p className="font-black text-slate-200 text-lg uppercase tracking-tight mb-2">Editor Pro Awaiting Source</p>
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">Upload your raw footage to begin the professional AI synchronization process.</p>
+          </div>
         </div>
       )}
     </div>

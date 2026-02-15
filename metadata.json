@@ -3,6 +3,7 @@
   "description": "An automated AI-powered video editor designed to transform raw footage into professionally edited TikTok-ready content using Gemini intelligence.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }

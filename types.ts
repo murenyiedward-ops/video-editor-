@@ -12,13 +12,15 @@ export interface AudioProfile {
   genre: string;
   bpmRange: string;
   trendingReference: string;
+  suggestedMusicDescription: string;
+  rhythmAnalysis: string;
 }
 
 export interface SfxSuggestion {
   timestamp: string;
   effect: string;
   reason: string;
-  visualCue: string; // The specific visual movement or object that triggered the SFX
+  visualCue: string;
 }
 
 export interface EditSuggestion {
@@ -41,5 +43,17 @@ export enum EditorTool {
   TEXT = 'TEXT',
   EFFECTS = 'EFFECTS',
   AI_GEN = 'AI_GEN',
-  AUDIO = 'AUDIO'
+  AUDIO = 'AUDIO',
+  STRATEGY = 'STRATEGY',
+  DISCOVERY = 'DISCOVERY'
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+export interface GroundingLink {
+  uri: string;
+  title: string;
 }
